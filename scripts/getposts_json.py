@@ -1,3 +1,4 @@
+import sys
 import re
 import praw
 import json
@@ -5,16 +6,21 @@ from datetime import datetime, timedelta
 import datetime as dt
 from psaw import PushshiftAPI
 from pymongo import MongoClient
+import os
 
 api = PushshiftAPI()
 
-start_epoch = '2019-06'
+start_epoch = '2019-08'
 num_days = 70
 # limit = 10000000
 
-reddit = praw.Reddit(client_id='abc',
-                     client_secret='123',
-                     user_agent='winjuppy/0.1')
+PRAW_CLIENT_SECRET = os.getenv('PRAW_CLIENT_SECRET')
+PRAW_CLIENT_ID = os.getenv('PRAW_CLIENT_ID')
+PRAW_USER_AGENT = os.getenv('PRAW_USER_AGENT')
+
+reddit = praw.Reddit(client_id=PRAW_CLIENT_ID,
+                     client_secret=PRAW_CLIENT_SECRET,
+                     user_agent=PRAW_USER_AGENT)
 
 # no a--holes here < 2018, no a-holes here > 2018
 results_dict = {'asshole': 'YTA', 'not the a-hole': 'NTA', 'everyone sucks': 'ESH', 'no a-holes here': 'NAH',
@@ -61,9 +67,11 @@ def get_posts(subreddit, start, num_days):
 
         # Save json file for previous month:
         if post_date_m != prev_post_date_m and prev_post_date_m != '':
+        # if post_date_d == 15:
             filename = subreddit.lower() + '_' + str(prev_post_date_y) + '_' + str(prev_post_date_m).zfill(2) + '.json'
             with open(filename, 'w') as fp:
                 json.dump(posts, fp, indent=2)
+                # sys.exit()
             posts = [] # reset posts list for new month
 
         submission = reddit.submission(id=post_id)
@@ -103,6 +111,7 @@ def get_posts(subreddit, start, num_days):
                         top_comment = top_comment.replace(*r)
                     top_comment = re.sub(r'\s+', ' ', top_comment).strip()
 
+                    print(post_link_flair)
                     # only include observations with a valid label:
                     if post_link_flair == 'asshole' or post_link_flair == 'not the a-hole' or post_link_flair == 'everyone sucks' or \
                         post_link_flair == 'no a-holes here' or post_link_flair == 'no a--holes here' or post_link_flair == 'not enough info':
